@@ -233,6 +233,41 @@ ruleTester.run("require-atomic-updates", rule, {
             `,
 			options: [{ allowProperties: true }],
 		},
+		`
+            let foo;
+            async function a(stream) {
+                for await (const chunk of stream) {
+                    foo = foo + chunk;
+                }
+            }
+        `,
+		{
+			code: `
+                let foo;
+                async function a() {
+                    {
+                        await using lock = acquireAsyncLock();
+                        const next = foo + 1;
+                        foo = next;
+                    }
+                }
+            `,
+			languageOptions: { ecmaVersion: 2026 },
+		},
+		{
+			code: `
+                let foo;
+                async function a() {
+                    let next;
+                    {
+                        using lock = acquireLock();
+                        next = foo + 1;
+                    }
+                    foo = next;
+                }
+            `,
+			languageOptions: { ecmaVersion: 2026 },
+		},
 	],
 
 	invalid: [
@@ -466,6 +501,61 @@ ruleTester.run("require-atomic-updates", rule, {
                 }
             `,
 			options: [{ allowProperties: true }],
+			errors: [VARIABLE_ERROR],
+		},
+		{
+			code: `
+                let foo = 0;
+                async function a(stream) {
+                    const start = foo;
+                    for await (const chunk of stream) {
+                        processChunk(chunk);
+                    }
+                    foo = start + 1;
+                }
+            `,
+			errors: [VARIABLE_ERROR],
+		},
+		{
+			code: `
+                let foo = 0;
+                async function a(stream) {
+                    let start;
+                    for await (const chunk of stream) {
+                        start = foo;
+                    }
+                    foo = start + 1;
+                }
+            `,
+			errors: [VARIABLE_ERROR],
+		},
+		{
+			code: `
+                let foo = 0;
+                async function a() {
+                    let next;
+                    {
+                        await using lock = acquireAsyncLock();
+                        next = foo + 1;
+                    }
+                    foo = next;
+                }
+            `,
+			languageOptions: { ecmaVersion: 2026 },
+			errors: [VARIABLE_ERROR],
+		},
+		{
+			code: `
+                let foo = 0;
+                async function a(items) {
+                    let next;
+                    for (await using lock of items) {
+                        next = foo + 1;
+                    }
+                    foo = next;
+                }
+            `,
+			languageOptions: { ecmaVersion: 2026 },
 			errors: [VARIABLE_ERROR],
 		},
 	],

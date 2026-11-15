@@ -5081,6 +5081,7 @@ export interface ESLintRules extends Linter.RulesRecord {
 	 * @since 5.3.0
 	 * @see https://eslint.org/docs/latest/rules/require-atomic-updates
 	 */
+    
 	"require-atomic-updates": Linter.RuleEntry<
 		[
 			Partial<{
